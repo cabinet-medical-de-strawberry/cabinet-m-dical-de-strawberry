@@ -2369,7 +2369,7 @@ textarea::placeholder{
 
 // Cabinet de Strawberry — chaque utilisateur possède son propre carnet, créé depuis le modèle de base.
 const bookSupervisorId='d5deb745-1298-4625-8c1d-6aa0f5ebc9f7';
-const isBookSupervisor=()=>currentUser?.id===bookSupervisorId && isAdmin;
+const isBookSupervisor=()=>isAdmin && (currentProfile?.medical_grade==='chef_de_cabinet' || currentProfile?.medical_grade==='medecin_adjoint');
 const canEditBook=()=>!!currentUser && currentProfile?.access_status==="approved";
 let bookCategories=[],bookReports=[],bookPage=-1,bookBusy=false,bookLoaded=false,bookOrderSaving=false;
 const bookOath=[
@@ -3025,7 +3025,7 @@ $('navigationSave').addEventListener('click',async()=>{
       renderAll();
       const p=currentProfile;
       $("userName").textContent=p?.display_name||currentUser.email||"Médecin";
-      $("userRole").textContent=gradeLabel(currentProfile?.medical_grade)+(isAdmin?" · Administrateur":"");
+      $("userRole").textContent=gradeLabel(currentProfile?.medical_grade)+(currentProfile?.role==="admin" && currentProfile?.medical_grade!=="medecin_adjoint"?" · Administrateur":"");
       setSync("En ligne · synchronisé","ok");
     }catch(error){
       console.error(error);
@@ -5190,7 +5190,7 @@ $('navigationSave').addEventListener('click',async()=>{
     document.body.classList.toggle("is-book-supervisor",isBookSupervisor());
     $("userEmail").textContent=currentUser?.email||"";
     $("userName").textContent=currentProfile?.display_name||currentUser?.email||"Médecin";
-    $("userRole").textContent=gradeLabel(currentProfile?.medical_grade)+(isAdmin?" · Administrateur":"");
+    $("userRole").textContent=gradeLabel(currentProfile?.medical_grade)+(currentProfile?.role==="admin" && currentProfile?.medical_grade!=="medecin_adjoint"?" · Administrateur":"");
     if(!isAdmin && (document.querySelector("#settings.view.active")||document.querySelector("#recipes.view.active")))setView("dashboard");
     if(!isBookSupervisor() && document.querySelector("#notebooksAdmin.view.active"))setView("dashboard");
     if(!(isAdmin||isAdjoint) && document.querySelector("#users.view.active"))setView("dashboard");
@@ -5227,8 +5227,8 @@ $('navigationSave').addEventListener('click',async()=>{
     }
     currentProfile=Array.isArray(data)?(data[0]||null):(data||null);
     if(syncMovementTypes())fillMovementResources();
-    isAdmin=currentProfile?.role==="admin" && currentProfile?.access_status==="approved";
-    isAdjoint=!isAdmin && currentProfile?.medical_grade==="medecin_adjoint" && currentProfile?.access_status==="approved";
+    isAdmin=(currentProfile?.role==="admin" || currentProfile?.medical_grade==="medecin_adjoint") && currentProfile?.access_status==="approved";
+    isAdjoint=currentProfile?.medical_grade==="medecin_adjoint" && currentProfile?.access_status==="approved";
     document.body.classList.toggle("is-admin",isAdmin);
     document.body.classList.toggle("is-adjoint",isAdjoint);
     if(currentProfile?.access_status==="approved"){
@@ -5242,7 +5242,7 @@ $('navigationSave').addEventListener('click',async()=>{
         document.body.classList.toggle("is-book-supervisor",isBookSupervisor());
         $("userEmail").textContent=currentUser?.email||"";
         $("userName").textContent=currentProfile?.display_name||currentUser?.email||"Médecin";
-        $("userRole").textContent=gradeLabel(currentProfile?.medical_grade)+(isAdmin?" · Administrateur":"");
+        $("userRole").textContent=gradeLabel(currentProfile?.medical_grade)+(currentProfile?.role==="admin" && currentProfile?.medical_grade!=="medecin_adjoint"?" · Administrateur":"");
       }
       return true;
     }
