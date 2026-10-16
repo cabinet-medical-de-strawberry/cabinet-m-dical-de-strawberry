@@ -3137,9 +3137,16 @@ $('navigationSave').addEventListener('click',async()=>{
       const pending=o.status==="a_commander";
       const inProgress=o.status==="en_cours";
       const delivered=o.status==="livre";
-      const date=o.deliveryDate
-        ? new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(o.deliveryDate+"T12:00:00"))
-        : "—";
+      const rawDate=String(o.deliveryDate||"").trim();
+      const dateMatch=/^(\d{4})-(\d{2})-(\d{2})/.exec(rawDate);
+      let date="—";
+      if(dateMatch){
+        const year=Number(dateMatch[1]),month=Number(dateMatch[2]),day=Number(dateMatch[3]);
+        const parsedDate=new Date(year,month-1,day,12);
+        if(parsedDate.getFullYear()===year && parsedDate.getMonth()===month-1 && parsedDate.getDate()===day){
+          date=new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}).format(parsedDate);
+        }
+      }
       const time=o.deliveryTime?String(o.deliveryTime).slice(0,5):"—";
       const dateCell=!delivered
         ? `<div class="order-date-picker">
