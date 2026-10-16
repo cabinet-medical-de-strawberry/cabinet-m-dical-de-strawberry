@@ -2030,9 +2030,14 @@ textarea::placeholder{
     }
   }
 
+  let dataClient=null;
   function setDataClient(session){
-    if(session?.access_token){
-      db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    if(!session?.access_token){
+      db=sb;
+      return;
+    }
+    if(!dataClient){
+      dataClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
         global:{headers:{Authorization:"Bearer "+session.access_token}},
         auth:{
           persistSession:false,
@@ -2042,8 +2047,11 @@ textarea::placeholder{
         }
       });
     }else{
-      db = sb;
+      // Réutiliser le même client évite de créer un GoTrueClient à chaque renouvellement.
+      // Mettre à jour l'en-tête garantit que les requêtes utilisent le jeton courant.
+      dataClient.rest.headers.Authorization="Bearer "+session.access_token;
     }
+    db=dataClient;
   }
 
   const defaults = {
