@@ -3106,7 +3106,9 @@ $('navigationSave').addEventListener('click',async()=>{
   }
 
   function renderOrders(){
-    renderRhodesOrderOverview();
+    // Keep the ingredient selector populated even if a secondary order panel fails to render.
+    try{fillOrderIngredients();}catch(error){console.error("Strawberry order ingredient selector error:",error);}
+    try{renderRhodesOrderOverview();}catch(error){console.error("Strawberry order overview render error:",error);}
     const body=$("ordersBody");
     if(!body)return;
     const isOutstanding=o=>o.status==="a_commander"||o.status==="en_cours";
