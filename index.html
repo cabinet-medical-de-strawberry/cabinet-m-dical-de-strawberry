@@ -3221,8 +3221,8 @@ $('navigationSave').addEventListener('click',async()=>{
   }
 
   function renderDashboard(){
-    renderOrders();
-    renderRecipePricing();
+    try{renderOrders();}catch(error){console.error("Strawberry dashboard orders render error:",error);}
+    try{renderRecipePricing();}catch(error){console.error("Strawberry dashboard pricing render error:",error);}
     $("dashCash").textContent=money(state.cash);
     $("dashCabinetProfitWeek").textContent=money(weekPharmacyProfit());
     $("dashPharmacyValue").textContent=money(pharmacyStockValue());
@@ -4095,7 +4095,23 @@ $('navigationSave').addEventListener('click',async()=>{
     document.querySelector(".brand h1").innerHTML=esc(state.settings.name).replace(/\sde\sStrawberry/i,"<br>de Strawberry");
     document.querySelector(".brand p").textContent=state.settings.place;
   }
-  function renderAll(){loadNavigation();renderDashboard();renderInventory();fillMovementResources();renderCraft();renderRecipes();fillRemoveIngredientSelect();renderSuppliers();renderHistory();renderSettings();}
+  function renderAll(){
+    const tasks=[
+      ["navigation",loadNavigation],
+      ["dashboard",renderDashboard],
+      ["inventory",renderInventory],
+      ["movement resources",fillMovementResources],
+      ["fabrication",renderCraft],
+      ["recipes",renderRecipes],
+      ["stock withdrawal",fillRemoveIngredientSelect],
+      ["suppliers",renderSuppliers],
+      ["history",renderHistory],
+      ["settings",renderSettings]
+    ];
+    for(const [name,render] of tasks){
+      try{render();}catch(error){console.error("Strawberry render error ["+name+"]:",error);}
+    }
+  }
 
 
 
