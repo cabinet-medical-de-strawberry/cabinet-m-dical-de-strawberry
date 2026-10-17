@@ -5073,45 +5073,56 @@ $('navigationSave').addEventListener('click',async()=>{
     try{const {error}=await db.rpc("reset_cabinet");if(error)throw error;await loadRemoteState();toast("Registre partagé remis à zéro.");}catch(err){dbError(err);}
   });
 
+  let sessionRefreshPromise=null;
   async function ensureFreshSession(forceRefresh=false){
-    let session=null;
-    try{
-      const {data,error}=await sb.auth.getSession();
-      if(error)throw error;
-      session=data?.session||null;
+    if(sessionRefreshPromise)return sessionRefreshPromise;
+    sessionRefreshPromise=(async()=>{
+      let session=null;
+      try{
+        const {data,error}=await sb.auth.getSession();
+        if(error)throw error;
+        session=data?.session||null;
 
-      if(!session){
-        const backup=readRememberedSession();
-        if(backup){
-          const restored=await sb.auth.setSession({
-            access_token:backup.access_token,
-            refresh_token:backup.refresh_token
-          });
-          if(restored.error)throw restored.error;
-          session=restored.data?.session||null;
+        if(!session){
+          const backup=readRememberedSession();
+          if(backup){
+            const restored=await sb.auth.setSession({
+              access_token:backup.access_token,
+              refresh_token:backup.refresh_token
+            });
+            if(restored.error)throw restored.error;
+            session=restored.data?.session||null;
+          }
         }
-      }
 
-      if(!session)return null;
+        if(!session)return null;
 
-      const expiresAt=Number(session.expires_at||0)*1000;
-      const expiresSoon=!expiresAt || (expiresAt-Date.now())<120000;
-      if(forceRefresh || expiresSoon){
-        const refreshed=await sb.auth.refreshSession();
-        if(refreshed.error)throw refreshed.error;
-        session=refreshed.data?.session||session;
-      }
+        const expiresAt=Number(session.expires_at||0)*1000;
+        const expiresSoon=!expiresAt || (expiresAt-Date.now())<120000;
+        if(forceRefresh || expiresSoon){
+          // Passer explicitement le jeton de renouvellement évite de dépendre
+          // d'une session interne qui peut être momentanément absente.
+          const refreshed=await sb.auth.refreshSession({refresh_token:session.refresh_token});
+          if(refreshed.error)throw refreshed.error;
+          session=refreshed.data?.session||session;
+        }
 
-      if(session){
-        rememberSession(session);
-        setDataClient(session);
-        currentUser=session.user||currentUser;
+        if(session){
+          rememberSession(session);
+          setDataClient(session);
+          currentUser=session.user||currentUser;
+        }
+        return session;
+      }catch(error){
+        if(error?.name!=="AuthSessionMissingError"){
+          console.warn("Rafraîchissement de session impossible :",error);
+        }
+        return session;
+      }finally{
+        sessionRefreshPromise=null;
       }
-      return session;
-    }catch(error){
-      console.warn("Rafraîchissement de session impossible :",error);
-      return session;
-    }
+    })();
+    return sessionRefreshPromise;
   }
 
   async function invokeCabinetFunction(name,body){
